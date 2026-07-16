@@ -20,6 +20,7 @@ import {
   type BuyRequestOut,
 } from "@/lib/api";
 import { getToken, getUser, clearSession } from "@/lib/session";
+import LocationPicker from "@/components/LocationPicker";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -45,6 +46,8 @@ export default function DashboardPage() {
   const [newSize, setNewSize] = useState("");
   const [newLocation, setNewLocation] = useState("");
   const [newDescription, setNewDescription] = useState("");
+  const [newLatitude, setNewLatitude] = useState<number | null>(null);
+  const [newLongitude, setNewLongitude] = useState<number | null>(null);
   const [newPhotos, setNewPhotos] = useState<File[]>([]);
   const [posting, setPosting] = useState(false);
   const [postSuccess, setPostSuccess] = useState<string | null>(null);
@@ -178,6 +181,8 @@ export default function DashboardPage() {
     setNewSize("");
     setNewLocation("");
     setNewDescription("");
+    setNewLatitude(null);
+    setNewLongitude(null);
     setNewPhotos([]);
   }
 
@@ -203,6 +208,8 @@ export default function DashboardPage() {
         size,
         location: newLocation.trim(),
         description: newDescription.trim() || undefined,
+        latitude: newLatitude ?? undefined,
+        longitude: newLongitude ?? undefined,
       });
 
       for (const photo of newPhotos) {
@@ -560,6 +567,14 @@ export default function DashboardPage() {
             placeholder="Location"
             value={newLocation}
             onChange={(e) => setNewLocation(e.target.value)}
+          />
+          <LocationPicker
+            latitude={newLatitude}
+            longitude={newLongitude}
+            onChange={(lat, lng) => {
+              setNewLatitude(lat);
+              setNewLongitude(lng);
+            }}
           />
           <textarea
             className="sell-form-input"
