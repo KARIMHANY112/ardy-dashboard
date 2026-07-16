@@ -1,0 +1,225 @@
+:root {
+  --ink: #1c231f;
+  --nile-green: #1f6f54;
+  --gold: #b8860b;
+  --sandy: #f4ecdd;
+  --divider: #dcd3c1;
+  --danger: #b3261e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background: #fff;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+input {
+  font: inherit;
+}
+
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.center-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sandy);
+}
+
+.card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 32px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(28, 35, 31, 0.7);
+}
+
+.field input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--divider);
+  font-size: 14px;
+}
+
+.primary-button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  background: var(--nile-green);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.primary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-text {
+  color: var(--danger);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.topbar h1 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.logout-button {
+  background: none;
+  border: none;
+  color: var(--ink);
+  font-size: 13px;
+  text-decoration: underline;
+}
+
+.dashboard-body {
+  padding: 24px;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  flex: 1;
+  background: var(--sandy);
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--divider);
+  margin-bottom: 20px;
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(28, 35, 31, 0.6);
+  border-bottom: 2px solid transparent;
+}
+
+.tab-button.active {
+  color: var(--nile-green);
+  border-bottom: 2px solid var(--nile-green);
+}
+
+.stat-card .value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--nile-green);
+}
+
+.stat-card .label {
+  font-size: 12px;
+  color: rgba(28, 35, 31, 0.6);
+}
+
+.listing-card {
+  border: 1px solid var(--divider);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.listing-card h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.listing-meta {
+  font-size: 13px;
+  color: rgba(28, 35, 31, 0.6);
+  margin-bottom: 10px;
+}
+
+.listing-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.listing-actions button {
+  flex: 1;
+  padding: 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.reject-button {
+  background: none;
+  border: 1.5px solid var(--divider);
+  color: var(--ink);
+}
+
+.approve-button {
+  background: var(--nile-green);
+  border: none;
+  color: #fff;
+}
+
+.sell-form-input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--divider);
+  font-size: 14px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 0;
+  color: rgba(28, 35, 31, 0.6);
+}
