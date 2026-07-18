@@ -73,26 +73,6 @@ export async function login(email: string, password: string): Promise<Token> {
   return handle<Token>(res);
 }
 
-export async function getPendingListings(token: string): Promise<ListingOut[]> {
-  const res = await fetch(`${API_BASE}/listings/dashboard/pending`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  return handle<ListingOut[]>(res);
-}
-
-export async function reviewListing(token: string, listingId: string, approve: boolean): Promise<ListingOut> {
-  const res = await fetch(`${API_BASE}/listings/${listingId}/review`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ approve }),
-  });
-  return handle<ListingOut>(res);
-}
-
 export async function getLiveListings(): Promise<ListingOut[]> {
   const res = await fetch(`${API_BASE}/listings`, { cache: "no-store" });
   return handle<ListingOut[]>(res);

@@ -3,8 +3,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  getPendingListings,
-  reviewListing,
   getLiveListings,
   getSoldListings,
   markListingSold,
@@ -20,12 +18,10 @@ import {
 } from "@/lib/api";
 import { getToken, getUser, clearSession } from "@/lib/session";
 import ListingFormFields, { emptyListingForm, type ListingFormValues } from "@/components/ListingFormFields";
-import PendingListingCard from "@/components/PendingListingCard";
 import LiveListingCard from "@/components/LiveListingCard";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [listings, setListings] = useState<ListingOut[] | null>(null);
   const [liveListings, setLiveListings] = useState<ListingOut[] | null>(null);
   const [soldListings, setSoldListings] = useState<ListingOut[] | null>(null);
   const [buyRequests, setBuyRequests] = useState<BuyRequestOut[] | null>(null);
@@ -36,8 +32,8 @@ export default function DashboardPage() {
   const [soldToName, setSoldToName] = useState("");
   const [soldToPhone, setSoldToPhone] = useState("");
   const [user, setUser] = useState<UserOut | null>(null);
-  const [activeTab, setActiveTab] = useState<"pending" | "live" | "sold" | "buyRequests" | "newListing">(
-    "pending"
+  const [activeTab, setActiveTab] = useState<"live" | "sold" | "buyRequests" | "newListing">(
+    "live"
   );
 
   const [newForm, setNewForm] = useState<ListingFormValues>(emptyListingForm);
@@ -55,13 +51,11 @@ export default function DashboardPage() {
       return;
     }
     try {
-      const [pendingListings, live, sold, requests] = await Promise.all([
-        getPendingListings(token),
+      const [live, sold, requests] = await Promise.all([
         getLiveListings(),
         getSoldListings(token),
         getBuyRequests(token),
       ]);
-      setListings(pendingListings);
       setLiveListings(live);
       setSoldListings(sold);
       setBuyRequests(requests);
@@ -79,20 +73,6 @@ export default function DashboardPage() {
     load();
     setUser(getUser());
   }, [load]);
-
-  async function handleReview(listingId: string, approve: boolean) {
-    const token = getToken();
-    if (!token) return;
-    setActingOn(listingId);
-    try {
-      await reviewListing(token, listingId, approve);
-      setListings((prev) => prev?.filter((l) => l.id !== listingId) ?? null);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not reach the server.");
-    } finally {
-      setActingOn(null);
-    }
-  }
 
   function openSellForm(listingId: string) {
     setSellingId(listingId);
@@ -240,7 +220,6 @@ export default function DashboardPage() {
         latitude: editForm.latitude ?? undefined,
         longitude: editForm.longitude ?? undefined,
       });
-      setListings((prev) => prev?.map((l) => (l.id === listingId ? updated : l)) ?? null);
       setLiveListings((prev) => prev?.map((l) => (l.id === listingId ? updated : l)) ?? null);
       setEditingId(null);
     } catch (err) {
@@ -264,10 +243,6 @@ export default function DashboardPage() {
 
       <div className="dashboard-body">
         <div className="stats-row">
-          <div className="stat-card" role="button" onClick={() => setActiveTab("pending")}>
-            <div className="value">{listings?.length ?? "—"}</div>
-            <div className="label">Pending Listings</div>
-          </div>
           <div className="stat-card" role="button" onClick={() => setActiveTab("sold")}>
             <div className="value">{soldListings?.length ?? "—"}</div>
             <div className="label">Sold Listings</div>
@@ -281,12 +256,6 @@ export default function DashboardPage() {
         {error && <div className="error-text">{error}</div>}
 
         <div className="tab-bar">
-          <button
-            className={activeTab === "pending" ? "tab-button active" : "tab-button"}
-            onClick={() => setActiveTab("pending")}
-          >
-            Pending Listings
-          </button>
           <button
             className={activeTab === "live" ? "tab-button active" : "tab-button"}
             onClick={() => setActiveTab("live")}
@@ -312,33 +281,6 @@ export default function DashboardPage() {
             New Listing
           </button>
         </div>
-
-        {activeTab === "pending" && (
-        <>
-        <h2 style={{ fontSize: 16 }}>Pending Listings</h2>
-
-        {listings === null && !error && <p>Loading...</p>}
-
-        {listings?.length === 0 && (
-          <div className="empty-state">No listings are waiting for review.</div>
-        )}
-
-        {listings?.map((listing) => (
-          <PendingListingCard
-            key={listing.id}
-            listing={listing}
-            isEditing={editingId === listing.id}
-            editForm={editForm}
-            onEditFormChange={setEditForm}
-            onStartEdit={() => openEditForm(listing)}
-            onCancelEdit={closeEditForm}
-            onSaveEdit={() => handleSaveEdit(listing.id)}
-            onReview={(approve) => handleReview(listing.id, approve)}
-            actingOn={actingOn === listing.id}
-          />
-        ))}
-        </>
-        )}
 
         {activeTab === "live" && (
         <>
