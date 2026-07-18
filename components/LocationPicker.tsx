@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
-
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
+import { GOOGLE_MAPS_API_KEY } from "@/lib/api";
 
 // Cairo — same default center used by the Flutter app's map picker.
 const DEFAULT_CENTER = { lat: 30.0444, lng: 31.2357 };

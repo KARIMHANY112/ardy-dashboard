@@ -8,8 +8,6 @@ import {
   getLiveListings,
   getSoldListings,
   markListingSold,
-  getPendingBuyers,
-  reviewBuyer,
   getBuyRequests,
   reviewBuyRequest,
   createListing,
@@ -27,7 +25,6 @@ export default function DashboardPage() {
   const [listings, setListings] = useState<ListingOut[] | null>(null);
   const [liveListings, setLiveListings] = useState<ListingOut[] | null>(null);
   const [soldListings, setSoldListings] = useState<ListingOut[] | null>(null);
-  const [buyers, setBuyers] = useState<UserOut[] | null>(null);
   const [buyRequests, setBuyRequests] = useState<BuyRequestOut[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actingOn, setActingOn] = useState<string | null>(null);
@@ -36,7 +33,7 @@ export default function DashboardPage() {
   const [soldToName, setSoldToName] = useState("");
   const [soldToPhone, setSoldToPhone] = useState("");
   const [user, setUser] = useState<UserOut | null>(null);
-  const [activeTab, setActiveTab] = useState<"pending" | "live" | "sold" | "buyers" | "buyRequests" | "newListing">(
+  const [activeTab, setActiveTab] = useState<"pending" | "live" | "sold" | "buyRequests" | "newListing">(
     "pending"
   );
 
@@ -59,17 +56,15 @@ export default function DashboardPage() {
       return;
     }
     try {
-      const [pendingListings, live, sold, pendingBuyers, requests] = await Promise.all([
+      const [pendingListings, live, sold, requests] = await Promise.all([
         getPendingListings(token),
         getLiveListings(),
         getSoldListings(token),
-        getPendingBuyers(token),
         getBuyRequests(token),
       ]);
       setListings(pendingListings);
       setLiveListings(live);
       setSoldListings(sold);
-      setBuyers(pendingBuyers);
       setBuyRequests(requests);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -125,20 +120,6 @@ export default function DashboardPage() {
       setLiveListings((prev) => prev?.filter((l) => l.id !== listingId) ?? null);
       setSoldListings((prev) => [sold, ...(prev ?? [])]);
       setSellingId(null);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not reach the server.");
-    } finally {
-      setActingOn(null);
-    }
-  }
-
-  async function handleBuyerReview(userId: string, approve: boolean) {
-    const token = getToken();
-    if (!token) return;
-    setActingOn(userId);
-    try {
-      await reviewBuyer(token, userId, approve);
-      setBuyers((prev) => prev?.filter((b) => b.id !== userId) ?? null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not reach the server.");
     } finally {
@@ -244,10 +225,6 @@ export default function DashboardPage() {
             <div className="value">{listings?.length ?? "—"}</div>
             <div className="label">Pending Listings</div>
           </div>
-          <div className="stat-card" role="button" onClick={() => setActiveTab("buyers")}>
-            <div className="value">{buyers?.length ?? "—"}</div>
-            <div className="label">Pending Buyers</div>
-          </div>
           <div className="stat-card" role="button" onClick={() => setActiveTab("sold")}>
             <div className="value">{soldListings?.length ?? "—"}</div>
             <div className="label">Sold Listings</div>
@@ -278,12 +255,6 @@ export default function DashboardPage() {
             onClick={() => setActiveTab("sold")}
           >
             Sold Listings
-          </button>
-          <button
-            className={activeTab === "buyers" ? "tab-button active" : "tab-button"}
-            onClick={() => setActiveTab("buyers")}
-          >
-            Pending Buyers
           </button>
           <button
             className={activeTab === "buyRequests" ? "tab-button active" : "tab-button"}
@@ -442,43 +413,6 @@ export default function DashboardPage() {
               Sold for ${listing.sold_price?.toLocaleString()} to {listing.sold_to_name} (
               {listing.sold_to_phone}) ·{" "}
               {listing.sold_at && new Date(listing.sold_at).toLocaleDateString()}
-            </div>
-          </div>
-        ))}
-        </>
-        )}
-
-        {activeTab === "buyers" && (
-        <>
-        <h2 style={{ fontSize: 16 }}>Pending Buyers</h2>
-
-        {buyers === null && !error && <p>Loading...</p>}
-
-        {buyers?.length === 0 && (
-          <div className="empty-state">No buyer accounts are waiting for review.</div>
-        )}
-
-        {buyers?.map((buyer) => (
-          <div className="listing-card" key={buyer.id}>
-            <h3>{buyer.name}</h3>
-            <div className="listing-meta">
-              {buyer.email} · {buyer.phone}
-            </div>
-            <div className="listing-actions">
-              <button
-                className="reject-button"
-                disabled={actingOn === buyer.id}
-                onClick={() => handleBuyerReview(buyer.id, false)}
-              >
-                Reject
-              </button>
-              <button
-                className="approve-button"
-                disabled={actingOn === buyer.id}
-                onClick={() => handleBuyerReview(buyer.id, true)}
-              >
-                Approve
-              </button>
             </div>
           </div>
         ))}

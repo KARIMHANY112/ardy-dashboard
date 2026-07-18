@@ -1,4 +1,5 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+export const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
 
 export type UserOut = {
   id: string;
@@ -161,14 +162,6 @@ export async function getSoldListings(token: string): Promise<ListingOut[]> {
   return handle<ListingOut[]>(res);
 }
 
-export async function getPendingBuyers(token: string): Promise<UserOut[]> {
-  const res = await fetch(`${API_BASE}/users/dashboard/pending`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  return handle<UserOut[]>(res);
-}
-
 export async function getBuyRequests(token: string): Promise<BuyRequestOut[]> {
   const res = await fetch(`${API_BASE}/listings/dashboard/buy-requests`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -191,16 +184,4 @@ export async function reviewBuyRequest(
     body: JSON.stringify({ approve }),
   });
   return handle<BuyRequestOut>(res);
-}
-
-export async function reviewBuyer(token: string, userId: string, approve: boolean): Promise<UserOut> {
-  const res = await fetch(`${API_BASE}/users/${userId}/review`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ approve }),
-  });
-  return handle<UserOut>(res);
 }
