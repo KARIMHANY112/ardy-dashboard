@@ -121,6 +121,24 @@ export async function createListing(token: string, payload: ListingCreatePayload
   return handle<ListingOut>(res);
 }
 
+export type ListingUpdatePayload = ListingCreatePayload;
+
+export async function updateListing(
+  token: string,
+  listingId: string,
+  payload: ListingUpdatePayload
+): Promise<ListingOut> {
+  const res = await fetch(`${API_BASE}/listings/dashboard/${listingId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  return handle<ListingOut>(res);
+}
+
 export async function uploadListingPhoto(token: string, listingId: string, file: File): Promise<ListingOut> {
   const body = new FormData();
   body.set("file", file);
