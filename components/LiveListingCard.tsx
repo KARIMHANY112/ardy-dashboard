@@ -93,7 +93,7 @@ export default function LiveListingCard({
               Cancel
             </button>
             <button className="approve-button" disabled={actingOn} onClick={onConfirmSell}>
-              Confirm Sold
+              Confirm Papers Pending
             </button>
           </div>
         </div>
@@ -103,7 +103,7 @@ export default function LiveListingCard({
             Edit
           </button>
           <button className="approve-button" onClick={onStartSell}>
-            Mark as Sold
+            Mark Papers Pending
           </button>
         </div>
       )}

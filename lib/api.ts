@@ -25,7 +25,7 @@ export type ListingOut = {
   size: number;
   location: string;
   description: string | null;
-  status: "pending" | "live" | "rejected" | "sold";
+  status: "pending" | "live" | "papers_pending" | "rejected" | "sold";
   photo_urls: string[];
   created_at: string;
   sold_price: number | null;
@@ -130,18 +130,20 @@ export async function uploadListingPhoto(token: string, listingId: string, file:
   return handle<ListingOut>(res);
 }
 
-export type MarkSoldPayload = {
+export type ListingSalePayload = {
   sold_price: number;
   sold_to_name: string;
   sold_to_phone: string;
 };
 
-export async function markListingSold(
+// Owner records a deal agreed by phone — moves a live listing to papers-pending,
+// not straight to sold. Finalized later via finalizeSale().
+export async function markListingPapersPending(
   token: string,
   listingId: string,
-  payload: MarkSoldPayload
+  payload: ListingSalePayload
 ): Promise<ListingOut> {
-  const res = await fetch(`${API_BASE}/listings/${listingId}/sold`, {
+  const res = await fetch(`${API_BASE}/listings/${listingId}/papers-pending`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -152,8 +154,34 @@ export async function markListingSold(
   return handle<ListingOut>(res);
 }
 
+// Owner confirms the registration paperwork is done — the sale is now 100% closed.
+export async function finalizeSale(token: string, listingId: string): Promise<ListingOut> {
+  const res = await fetch(`${API_BASE}/listings/${listingId}/finalize-sale`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handle<ListingOut>(res);
+}
+
+// Owner reports the deal fell through during paperwork — listing goes back on the market.
+export async function revertListingToLive(token: string, listingId: string): Promise<ListingOut> {
+  const res = await fetch(`${API_BASE}/listings/${listingId}/revert-to-live`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return handle<ListingOut>(res);
+}
+
 export async function getSoldListings(token: string): Promise<ListingOut[]> {
   const res = await fetch(`${API_BASE}/listings/dashboard/sold`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  return handle<ListingOut[]>(res);
+}
+
+export async function getPapersPendingListings(token: string): Promise<ListingOut[]> {
+  const res = await fetch(`${API_BASE}/listings/dashboard/papers-pending`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });

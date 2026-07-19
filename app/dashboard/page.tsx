@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import {
   getLiveListings,
   getSoldListings,
-  markListingSold,
+  getPapersPendingListings,
+  markListingPapersPending,
+  finalizeSale,
+  revertListingToLive,
   getBuyRequests,
   reviewBuyRequest,
   createListing,
@@ -24,6 +27,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [liveListings, setLiveListings] = useState<ListingOut[] | null>(null);
   const [soldListings, setSoldListings] = useState<ListingOut[] | null>(null);
+  const [papersPendingListings, setPapersPendingListings] = useState<ListingOut[] | null>(null);
   const [buyRequests, setBuyRequests] = useState<BuyRequestOut[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actingOn, setActingOn] = useState<string | null>(null);
@@ -32,9 +36,9 @@ export default function DashboardPage() {
   const [soldToName, setSoldToName] = useState("");
   const [soldToPhone, setSoldToPhone] = useState("");
   const [user, setUser] = useState<UserOut | null>(null);
-  const [activeTab, setActiveTab] = useState<"live" | "sold" | "buyRequests" | "newListing">(
-    "live"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "live" | "papersPending" | "sold" | "buyRequests" | "newListing"
+  >("live");
 
   const [newForm, setNewForm] = useState<ListingFormValues>(emptyListingForm);
   const [newPhotos, setNewPhotos] = useState<File[]>([]);
@@ -51,13 +55,15 @@ export default function DashboardPage() {
       return;
     }
     try {
-      const [live, sold, requests] = await Promise.all([
+      const [live, sold, papersPending, requests] = await Promise.all([
         getLiveListings(),
         getSoldListings(token),
+        getPapersPendingListings(token),
         getBuyRequests(token),
       ]);
       setLiveListings(live);
       setSoldListings(sold);
+      setPapersPendingListings(papersPending);
       setBuyRequests(requests);
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -81,24 +87,54 @@ export default function DashboardPage() {
     setSoldToPhone("");
   }
 
-  async function handleMarkSold(listingId: string) {
+  async function handleMarkPapersPending(listingId: string) {
     const token = getToken();
     if (!token) return;
     const price = Number(soldPrice);
     if (!price || !soldToName.trim() || !soldToPhone.trim()) {
-      setError("Sold price, buyer name, and buyer phone are all required.");
+      setError("Agreed price, buyer name, and buyer phone are all required.");
       return;
     }
     setActingOn(listingId);
     try {
-      const sold = await markListingSold(token, listingId, {
+      const pending = await markListingPapersPending(token, listingId, {
         sold_price: price,
         sold_to_name: soldToName.trim(),
         sold_to_phone: soldToPhone.trim(),
       });
       setLiveListings((prev) => prev?.filter((l) => l.id !== listingId) ?? null);
-      setSoldListings((prev) => [sold, ...(prev ?? [])]);
+      setPapersPendingListings((prev) => [pending, ...(prev ?? [])]);
       setSellingId(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not reach the server.");
+    } finally {
+      setActingOn(null);
+    }
+  }
+
+  async function handleFinalizeSale(listingId: string) {
+    const token = getToken();
+    if (!token) return;
+    setActingOn(listingId);
+    try {
+      const sold = await finalizeSale(token, listingId);
+      setPapersPendingListings((prev) => prev?.filter((l) => l.id !== listingId) ?? null);
+      setSoldListings((prev) => [sold, ...(prev ?? [])]);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not reach the server.");
+    } finally {
+      setActingOn(null);
+    }
+  }
+
+  async function handleRevertToLive(listingId: string) {
+    const token = getToken();
+    if (!token) return;
+    setActingOn(listingId);
+    try {
+      const live = await revertListingToLive(token, listingId);
+      setPapersPendingListings((prev) => prev?.filter((l) => l.id !== listingId) ?? null);
+      setLiveListings((prev) => [live, ...(prev ?? [])]);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not reach the server.");
     } finally {
@@ -113,12 +149,13 @@ export default function DashboardPage() {
     try {
       const reviewed = await reviewBuyRequest(token, requestId, approve);
       if (approve) {
-        const soldListing = reviewed.listing;
+        const pendingListing = reviewed.listing;
         // Approving auto-rejects any other pending request on the same listing server-side —
-        // drop them here too so the list doesn't show stale "pending" entries for a sold listing.
-        setBuyRequests((prev) => prev?.filter((r) => r.listing.id !== soldListing.id) ?? null);
-        setLiveListings((prev) => prev?.filter((l) => l.id !== soldListing.id) ?? null);
-        setSoldListings((prev) => [soldListing, ...(prev ?? [])]);
+        // drop them here too so the list doesn't show stale "pending" entries. The listing
+        // moves to papers-pending, not sold, until the owner finalizes the paperwork.
+        setBuyRequests((prev) => prev?.filter((r) => r.listing.id !== pendingListing.id) ?? null);
+        setLiveListings((prev) => prev?.filter((l) => l.id !== pendingListing.id) ?? null);
+        setPapersPendingListings((prev) => [pendingListing, ...(prev ?? [])]);
       } else {
         setBuyRequests((prev) => prev?.filter((r) => r.id !== requestId) ?? null);
       }
@@ -247,6 +284,10 @@ export default function DashboardPage() {
             <div className="value">{soldListings?.length ?? "—"}</div>
             <div className="label">Sold Listings</div>
           </div>
+          <div className="stat-card" role="button" onClick={() => setActiveTab("papersPending")}>
+            <div className="value">{papersPendingListings?.length ?? "—"}</div>
+            <div className="label">Papers Pending</div>
+          </div>
           <div className="stat-card" role="button" onClick={() => setActiveTab("buyRequests")}>
             <div className="value">{buyRequests?.length ?? "—"}</div>
             <div className="label">Pending Buy Requests</div>
@@ -261,6 +302,12 @@ export default function DashboardPage() {
             onClick={() => setActiveTab("live")}
           >
             Live Listings
+          </button>
+          <button
+            className={activeTab === "papersPending" ? "tab-button active" : "tab-button"}
+            onClick={() => setActiveTab("papersPending")}
+          >
+            Papers Pending
           </button>
           <button
             className={activeTab === "sold" ? "tab-button active" : "tab-button"}
@@ -312,8 +359,50 @@ export default function DashboardPage() {
             onSoldToPhoneChange={setSoldToPhone}
             onStartSell={() => openSellForm(listing.id)}
             onCancelSell={() => setSellingId(null)}
-            onConfirmSell={() => handleMarkSold(listing.id)}
+            onConfirmSell={() => handleMarkPapersPending(listing.id)}
           />
+        ))}
+        </>
+        )}
+
+        {activeTab === "papersPending" && (
+        <>
+        <h2 style={{ fontSize: 16 }}>Papers Pending</h2>
+
+        {papersPendingListings === null && !error && <p>Loading...</p>}
+
+        {papersPendingListings?.length === 0 && (
+          <div className="empty-state">No listings are currently awaiting paperwork.</div>
+        )}
+
+        {papersPendingListings?.map((listing) => (
+          <div className="listing-card" key={listing.id}>
+            <h3>{listing.title}</h3>
+            <div className="listing-meta">
+              {listing.ref_code} · {listing.type} · {listing.size} sqm · {listing.location} · listed at $
+              {listing.price.toLocaleString()}
+            </div>
+            <div className="listing-meta">
+              Agreed price ${listing.sold_price?.toLocaleString()} with {listing.sold_to_name} (
+              {listing.sold_to_phone})
+            </div>
+            <div className="listing-actions">
+              <button
+                className="reject-button"
+                disabled={actingOn === listing.id}
+                onClick={() => handleRevertToLive(listing.id)}
+              >
+                Deal Fell Through
+              </button>
+              <button
+                className="approve-button"
+                disabled={actingOn === listing.id}
+                onClick={() => handleFinalizeSale(listing.id)}
+              >
+                Finalize Sale
+              </button>
+            </div>
+          </div>
         ))}
         </>
         )}
