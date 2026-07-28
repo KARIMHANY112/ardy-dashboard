@@ -23,7 +23,9 @@ button {
   cursor: pointer;
 }
 
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -178,6 +180,35 @@ input {
 .listing-card h3 {
   margin: 0 0 4px;
   font-size: 16px;
+}
+
+/* Sale / rent / resale badge — colour-coded so the offer type is readable at a glance
+   without reading the meta line. */
+.offer-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+.offer-badge.sale {
+  background: rgba(31, 111, 84, 0.12);
+  color: var(--nile-green);
+}
+
+.offer-badge.rent {
+  background: rgba(184, 134, 11, 0.14);
+  color: var(--gold);
+}
+
+.offer-badge.resale {
+  background: rgba(28, 35, 31, 0.09);
+  color: rgba(28, 35, 31, 0.75);
 }
 
 .listing-meta {

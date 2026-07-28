@@ -16,12 +16,46 @@ export type Token = {
   user: UserOut;
 };
 
+// What the listing is offered as — mirrors the backend's OfferType enum.
+// Every listing declares one; rows that predate the field fall back to "sale".
+export type OfferType = "sale" | "rent" | "resale";
+
+export const OFFER_TYPE_LABELS: Record<OfferType, string> = {
+  sale: "For Sale",
+  rent: "For Rent",
+  resale: "Resale",
+};
+
+// How often rent is charged. The backend requires this on rentals and rejects it on
+// sale/resale, so it must be sent only alongside offer_type "rent".
+export type RentPeriod = "monthly" | "yearly";
+
+export const RENT_PERIOD_LABELS: Record<RentPeriod, string> = {
+  monthly: "Per month",
+  yearly: "Per year",
+};
+
+// Compact suffix for prices, e.g. "$12,000 /mo".
+export const RENT_PERIOD_SUFFIX: Record<RentPeriod, string> = {
+  monthly: "/mo",
+  yearly: "/yr",
+};
+
+// "$12,000" for a sale, "$12,000 /mo" for a rental — a rent figure on its own doesn't
+// say what it buys you.
+export function formatListingPrice(listing: Pick<ListingOut, "price" | "rent_period">): string {
+  const price = `$${listing.price.toLocaleString()}`;
+  return listing.rent_period ? `${price} ${RENT_PERIOD_SUFFIX[listing.rent_period]}` : price;
+}
+
 export type ListingOut = {
   id: string;
   ref_code: string;
   title: string;
   type: string;
+  offer_type: OfferType;
   price: number;
+  rent_period: RentPeriod | null;
   size: number;
   location: string;
   description: string | null;
@@ -81,7 +115,10 @@ export async function getLiveListings(): Promise<ListingOut[]> {
 export type ListingCreatePayload = {
   title: string;
   type: string;
+  offer_type: OfferType;
   price: number;
+  // Omitted entirely unless offer_type is "rent" — the backend 422s on a stray value.
+  rent_period?: RentPeriod;
   size: number;
   location: string;
   description?: string;

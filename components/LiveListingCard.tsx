@@ -1,8 +1,9 @@
 "use client";
 
-import type { ListingOut } from "@/lib/api";
+import { formatListingPrice, type ListingOut } from "@/lib/api";
 import ListingEditForm from "@/components/ListingEditForm";
 import type { ListingFormValues } from "@/components/ListingFormFields";
+import OfferTypeBadge from "@/components/OfferTypeBadge";
 
 type LiveListingCardProps = {
   listing: ListingOut;
@@ -61,10 +62,13 @@ export default function LiveListingCard({
 
   return (
     <div className="listing-card">
-      <h3>{listing.title}</h3>
+      <h3>
+        {listing.title}
+        <OfferTypeBadge offerType={listing.offer_type} />
+      </h3>
       <div className="listing-meta">
-        {listing.ref_code} · {listing.type} · {listing.size} sqm · {listing.location} · $
-        {listing.price.toLocaleString()}
+        {listing.ref_code} · {listing.type} · {listing.size} sqm · {listing.location} ·{" "}
+        {formatListingPrice(listing)}
       </div>
 
       {isSelling ? (

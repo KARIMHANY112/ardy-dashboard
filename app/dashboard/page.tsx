@@ -14,6 +14,7 @@ import {
   createListing,
   updateListing,
   uploadListingPhoto,
+  formatListingPrice,
   ApiError,
   type ListingOut,
   type UserOut,
@@ -22,6 +23,7 @@ import {
 import { getToken, getUser, clearSession } from "@/lib/session";
 import ListingFormFields, { emptyListingForm, type ListingFormValues } from "@/components/ListingFormFields";
 import LiveListingCard from "@/components/LiveListingCard";
+import OfferTypeBadge from "@/components/OfferTypeBadge";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -182,8 +184,19 @@ export default function DashboardPage() {
 
     const price = Number(newForm.price);
     const size = Number(newForm.size);
-    if (!newForm.title.trim() || !newForm.type.trim() || !newForm.location.trim() || !price || !size) {
-      setError("Title, type, price, size, and location are all required.");
+    if (
+      !newForm.title.trim() ||
+      !newForm.type.trim() ||
+      !newForm.offerType ||
+      !newForm.location.trim() ||
+      !price ||
+      !size
+    ) {
+      setError("Title, type, offer type, price, size, and location are all required.");
+      return;
+    }
+    if (newForm.offerType === "rent" && !newForm.rentPeriod) {
+      setError("Choose whether the rent is charged per month or per year.");
       return;
     }
 
@@ -194,7 +207,10 @@ export default function DashboardPage() {
       let listing = await createListing(token, {
         title: newForm.title.trim(),
         type: newForm.type.trim(),
+        offer_type: newForm.offerType,
         price,
+        // Sent only on rentals — the API rejects the field on sale/resale.
+        rent_period: newForm.offerType === "rent" ? newForm.rentPeriod || undefined : undefined,
         size,
         location: newForm.location.trim(),
         description: newForm.description.trim() || undefined,
@@ -221,7 +237,9 @@ export default function DashboardPage() {
     setEditForm({
       title: listing.title,
       type: listing.type,
+      offerType: listing.offer_type,
       price: String(listing.price),
+      rentPeriod: listing.rent_period ?? "",
       size: String(listing.size),
       location: listing.location,
       description: listing.description ?? "",
@@ -240,8 +258,19 @@ export default function DashboardPage() {
 
     const price = Number(editForm.price);
     const size = Number(editForm.size);
-    if (!editForm.title.trim() || !editForm.type.trim() || !editForm.location.trim() || !price || !size) {
-      setError("Title, type, price, size, and location are all required.");
+    if (
+      !editForm.title.trim() ||
+      !editForm.type.trim() ||
+      !editForm.offerType ||
+      !editForm.location.trim() ||
+      !price ||
+      !size
+    ) {
+      setError("Title, type, offer type, price, size, and location are all required.");
+      return;
+    }
+    if (editForm.offerType === "rent" && !editForm.rentPeriod) {
+      setError("Choose whether the rent is charged per month or per year.");
       return;
     }
 
@@ -250,7 +279,9 @@ export default function DashboardPage() {
       const updated = await updateListing(token, listingId, {
         title: editForm.title.trim(),
         type: editForm.type.trim(),
+        offer_type: editForm.offerType,
         price,
+        rent_period: editForm.offerType === "rent" ? editForm.rentPeriod || undefined : undefined,
         size,
         location: editForm.location.trim(),
         description: editForm.description.trim() || undefined,
@@ -377,10 +408,13 @@ export default function DashboardPage() {
 
         {papersPendingListings?.map((listing) => (
           <div className="listing-card" key={listing.id}>
-            <h3>{listing.title}</h3>
+            <h3>
+              {listing.title}
+              <OfferTypeBadge offerType={listing.offer_type} />
+            </h3>
             <div className="listing-meta">
-              {listing.ref_code} · {listing.type} · {listing.size} sqm · {listing.location} · listed at $
-              {listing.price.toLocaleString()}
+              {listing.ref_code} · {listing.type} · {listing.size} sqm · {listing.location} · listed at{" "}
+              {formatListingPrice(listing)}
             </div>
             <div className="listing-meta">
               Agreed price ${listing.sold_price?.toLocaleString()} with {listing.sold_to_name} (
@@ -419,10 +453,13 @@ export default function DashboardPage() {
 
         {soldListings?.map((listing) => (
           <div className="listing-card" key={listing.id}>
-            <h3>{listing.title}</h3>
+            <h3>
+              {listing.title}
+              <OfferTypeBadge offerType={listing.offer_type} />
+            </h3>
             <div className="listing-meta">
-              {listing.ref_code} · {listing.type} · {listing.size} sqm · {listing.location} · listed at $
-              {listing.price.toLocaleString()}
+              {listing.ref_code} · {listing.type} · {listing.size} sqm · {listing.location} · listed at{" "}
+              {formatListingPrice(listing)}
             </div>
             <div className="listing-meta">
               Seller: {listing.submitted_by_name} · {listing.submitted_by_phone}
@@ -449,10 +486,13 @@ export default function DashboardPage() {
 
         {buyRequests?.map((request) => (
           <div className="listing-card" key={request.id}>
-            <h3>{request.listing.title}</h3>
+            <h3>
+              {request.listing.title}
+              <OfferTypeBadge offerType={request.listing.offer_type} />
+            </h3>
             <div className="listing-meta">
               {request.listing.ref_code} · {request.listing.type} · {request.listing.size} sqm ·{" "}
-              {request.listing.location} · ${request.listing.price.toLocaleString()}
+              {request.listing.location} · {formatListingPrice(request.listing)}
             </div>
             <div className="listing-meta">
               Buyer: {request.buyer_name} · {request.buyer_phone}
