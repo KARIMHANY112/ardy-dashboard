@@ -284,7 +284,9 @@ export default function DashboardPage() {
         rent_period: editForm.offerType === "rent" ? editForm.rentPeriod || undefined : undefined,
         size,
         location: editForm.location.trim(),
-        description: editForm.description.trim() || undefined,
+        // null, not undefined — an omitted key leaves the old description in place,
+        // so emptying the box has to be sent explicitly to actually clear it.
+        description: editForm.description.trim() || null,
         latitude: editForm.latitude ?? undefined,
         longitude: editForm.longitude ?? undefined,
       });

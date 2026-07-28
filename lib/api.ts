@@ -138,14 +138,20 @@ export async function createListing(token: string, payload: ListingCreatePayload
   return handle<ListingOut>(res);
 }
 
-export type ListingUpdatePayload = ListingCreatePayload;
+// A partial edit: the backend applies only the keys actually present in the body
+// (model_dump(exclude_unset=True)), so an omitted key means "leave alone" rather than
+// "clear". Description is therefore explicitly nullable — sending null is the only way
+// to wipe one, since omitting it would silently keep the old text.
+export type ListingUpdatePayload = Omit<ListingCreatePayload, "description"> & {
+  description?: string | null;
+};
 
 export async function updateListing(
   token: string,
   listingId: string,
   payload: ListingUpdatePayload
 ): Promise<ListingOut> {
-  const res = await fetch(`${API_BASE}/listings/dashboard/${listingId}`, {
+  const res = await fetch(`${API_BASE}/listings/${listingId}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
