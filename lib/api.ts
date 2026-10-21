@@ -4,7 +4,7 @@ export const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?
 export type UserOut = {
   id: string;
   name: string;
-  phone: string;
+  phone: string | null;
   email: string;
   role: "buyer" | "owner";
   status: "pending" | "approved" | "rejected";
@@ -75,7 +75,7 @@ export type BuyRequestOut = {
   id: string;
   listing: ListingOut;
   buyer_name: string;
-  buyer_phone: string;
+  buyer_phone: string | null;
   status: "pending" | "approved" | "rejected";
   created_at: string;
 };

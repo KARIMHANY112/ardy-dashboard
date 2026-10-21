@@ -464,7 +464,7 @@ export default function DashboardPage() {
               {formatListingPrice(listing)}
             </div>
             <div className="listing-meta">
-              Seller: {listing.submitted_by_name} · {listing.submitted_by_phone}
+              Seller: {listing.submitted_by_name} · {listing.submitted_by_phone ?? "no phone"}
             </div>
             <div className="listing-meta">
               Sold for ${listing.sold_price?.toLocaleString()} to {listing.sold_to_name} (
@@ -497,7 +497,7 @@ export default function DashboardPage() {
               {request.listing.location} · {formatListingPrice(request.listing)}
             </div>
             <div className="listing-meta">
-              Buyer: {request.buyer_name} · {request.buyer_phone}
+              Buyer: {request.buyer_name} · {request.buyer_phone ?? "no phone"}
             </div>
             <div className="listing-meta">
               Requested {new Date(request.created_at).toLocaleDateString()}
