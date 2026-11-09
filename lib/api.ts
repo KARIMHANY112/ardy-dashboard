@@ -57,6 +57,7 @@ export type ListingOut = {
   price: number;
   rent_period: RentPeriod | null;
   size: number;
+  size_unit?: "sqm" | "feddan";
   location: string;
   description: string | null;
   status: "pending" | "live" | "papers_pending" | "rejected" | "sold";
@@ -69,6 +70,9 @@ export type ListingOut = {
   // Only present on owner-dashboard endpoints (pending/sold) — never on the public browse endpoint.
   submitted_by_name?: string;
   submitted_by_phone?: string;
+  // The number the seller typed on the app's "List your property" form — the one to
+  // call before approving. Owner endpoints only; never sent to the app's public feed.
+  contact_phone?: string | null;
 };
 
 export type BuyRequestOut = {
@@ -229,6 +233,36 @@ export async function getPapersPendingListings(token: string): Promise<ListingOu
     cache: "no-store",
   });
   return handle<ListingOut[]>(res);
+}
+
+// Listings submitted from the app, waiting for the owner to approve or reject.
+export async function getPendingListings(token: string): Promise<ListingOut[]> {
+  const res = await fetch(`${API_BASE}/listings/dashboard/pending`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  return handle<ListingOut[]>(res);
+}
+
+// Approve publishes the submission to the live feed; reject declines it. Either way
+// the seller gets a push notification.
+export async function reviewListing(token: string, listingId: string, approve: boolean): Promise<ListingOut> {
+  const res = await fetch(`${API_BASE}/listings/dashboard/${listingId}/review`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ approve }),
+  });
+  return handle<ListingOut>(res);
+}
+
+// "01001234567" -> "201001234567", the international form wa.me links need.
+export function whatsappLink(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  const intl = digits.startsWith("0") ? `20${digits.slice(1)}` : digits;
+  return `https://wa.me/${intl}`;
 }
 
 export async function getBuyRequests(token: string): Promise<BuyRequestOut[]> {

@@ -11,6 +11,9 @@ import {
   revertListingToLive,
   getBuyRequests,
   reviewBuyRequest,
+  getPendingListings,
+  reviewListing,
+  whatsappLink,
   createListing,
   updateListing,
   uploadListingPhoto,
@@ -31,6 +34,7 @@ export default function DashboardPage() {
   const [soldListings, setSoldListings] = useState<ListingOut[] | null>(null);
   const [papersPendingListings, setPapersPendingListings] = useState<ListingOut[] | null>(null);
   const [buyRequests, setBuyRequests] = useState<BuyRequestOut[] | null>(null);
+  const [pendingListings, setPendingListings] = useState<ListingOut[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [sellingId, setSellingId] = useState<string | null>(null);
@@ -39,8 +43,8 @@ export default function DashboardPage() {
   const [soldToPhone, setSoldToPhone] = useState("");
   const [user, setUser] = useState<UserOut | null>(null);
   const [activeTab, setActiveTab] = useState<
-    "live" | "papersPending" | "sold" | "buyRequests" | "newListing"
-  >("live");
+    "review" | "live" | "papersPending" | "sold" | "buyRequests" | "newListing"
+  >("review");
 
   const [newForm, setNewForm] = useState<ListingFormValues>(emptyListingForm);
   const [newPhotos, setNewPhotos] = useState<File[]>([]);
@@ -57,12 +61,14 @@ export default function DashboardPage() {
       return;
     }
     try {
-      const [live, sold, papersPending, requests] = await Promise.all([
+      const [live, sold, papersPending, requests, pending] = await Promise.all([
         getLiveListings(),
         getSoldListings(token),
         getPapersPendingListings(token),
         getBuyRequests(token),
+        getPendingListings(token),
       ]);
+      setPendingListings(pending);
       setLiveListings(live);
       setSoldListings(sold);
       setPapersPendingListings(papersPending);
@@ -161,6 +167,21 @@ export default function DashboardPage() {
       } else {
         setBuyRequests((prev) => prev?.filter((r) => r.id !== requestId) ?? null);
       }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not reach the server.");
+    } finally {
+      setActingOn(null);
+    }
+  }
+
+  async function handleListingReview(listingId: string, approve: boolean) {
+    const token = getToken();
+    if (!token) return;
+    setActingOn(listingId);
+    try {
+      const reviewed = await reviewListing(token, listingId, approve);
+      setPendingListings((prev) => prev?.filter((l) => l.id !== listingId) ?? null);
+      if (approve) setLiveListings((prev) => [reviewed, ...(prev ?? [])]);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not reach the server.");
     } finally {
@@ -313,6 +334,10 @@ export default function DashboardPage() {
 
       <div className="dashboard-body">
         <div className="stats-row">
+          <div className="stat-card" role="button" onClick={() => setActiveTab("review")}>
+            <div className="value">{pendingListings?.length ?? "—"}</div>
+            <div className="label">Awaiting Review</div>
+          </div>
           <div className="stat-card" role="button" onClick={() => setActiveTab("sold")}>
             <div className="value">{soldListings?.length ?? "—"}</div>
             <div className="label">Sold Listings</div>
@@ -330,6 +355,12 @@ export default function DashboardPage() {
         {error && <div className="error-text">{error}</div>}
 
         <div className="tab-bar">
+          <button
+            className={activeTab === "review" ? "tab-button active" : "tab-button"}
+            onClick={() => setActiveTab("review")}
+          >
+            Awaiting Review{pendingListings?.length ? ` (${pendingListings.length})` : ""}
+          </button>
           <button
             className={activeTab === "live" ? "tab-button active" : "tab-button"}
             onClick={() => setActiveTab("live")}
@@ -361,6 +392,82 @@ export default function DashboardPage() {
             New Listing
           </button>
         </div>
+
+        {activeTab === "review" && (
+        <>
+        <h2 style={{ fontSize: 16 }}>Listings Awaiting Review</h2>
+        <p style={{ fontSize: 13, color: "rgba(28, 35, 31, 0.6)", marginTop: -4 }}>
+          Submitted from the app. Call the seller to check the details, then approve to publish it.
+          The seller&apos;s number is never shown to buyers.
+        </p>
+
+        {pendingListings === null && !error && <p>Loading...</p>}
+
+        {pendingListings?.length === 0 && (
+          <div className="empty-state">No listings are waiting for review.</div>
+        )}
+
+        {pendingListings?.map((listing) => (
+          <div className="listing-card" key={listing.id}>
+            <h3>
+              {listing.title}
+              <OfferTypeBadge offerType={listing.offer_type} />
+            </h3>
+            <div className="listing-meta">
+              {listing.ref_code} · {listing.type} · {listing.size} {listing.size_unit ?? "sqm"} ·{" "}
+              {listing.location} · {formatListingPrice(listing)}
+            </div>
+            <div className="listing-meta">
+              Submitted by {listing.submitted_by_name} on {new Date(listing.created_at).toLocaleDateString()}
+            </div>
+            {listing.contact_phone ? (
+              <div className="listing-meta" style={{ color: "var(--ink)", fontWeight: 700 }}>
+                Seller&apos;s number: {listing.contact_phone} ·{" "}
+                <a href={`tel:${listing.contact_phone}`}>Call</a> ·{" "}
+                <a href={whatsappLink(listing.contact_phone)} target="_blank" rel="noreferrer">
+                  WhatsApp
+                </a>
+              </div>
+            ) : (
+              <div className="listing-meta">No contact number given</div>
+            )}
+            {listing.description && (
+              <p style={{ fontSize: 13, margin: "8px 0" }}>{listing.description}</p>
+            )}
+            {listing.photo_urls.length > 0 && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "8px 0" }}>
+                {listing.photo_urls.map((url) => (
+                  <a key={url} href={url} target="_blank" rel="noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt=""
+                      style={{ width: 96, height: 96, objectFit: "cover", borderRadius: 8 }}
+                    />
+                  </a>
+                ))}
+              </div>
+            )}
+            <div className="listing-actions">
+              <button
+                className="reject-button"
+                disabled={actingOn === listing.id}
+                onClick={() => handleListingReview(listing.id, false)}
+              >
+                Reject
+              </button>
+              <button
+                className="approve-button"
+                disabled={actingOn === listing.id}
+                onClick={() => handleListingReview(listing.id, true)}
+              >
+                Approve &amp; Publish
+              </button>
+            </div>
+          </div>
+        ))}
+        </>
+        )}
 
         {activeTab === "live" && (
         <>
